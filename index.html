@@ -204,7 +204,7 @@ document.getElementById("clubs").innerHTML=C.map(c=>`<figure><img src="${LG[c[0]
 const io=new IntersectionObserver(e=>{if(e[0].isIntersecting){rk();io.disconnect()}});
 io.observe(document.getElementById("rank"));
 document.querySelectorAll("[data-n]").forEach(el=>{const n=+el.dataset.n;let c=0;const t=setInterval(()=>{el.textContent=++c;if(c>=n)clearInterval(t)},60)});
-const ENDPOINT=""; // cole aqui a URL do Apps Script (veja o README)
+const ENDPOINT=https://script.google.com/macros/s/AKfycbzjHRyMBhgdxPH_mt_laZMd5aPOXD8jluYe-jI4VlEDT4AEubmX1GfxsUOO8ynxC3Na/exec""; // cole aqui a URL do Apps Script (veja o README)
 document.getElementById("f").onsubmit=async e=>{e.preventDefault();const ok=document.getElementById("ok");
  if(!ENDPOINT){ok.textContent="Modo demonstração: o formulário será ligado à planilha no site final.";return}
  try{await fetch(ENDPOINT,{method:"POST",mode:"no-cors",body:new URLSearchParams(new FormData(e.target))});
