@@ -367,10 +367,10 @@ function sumario(){const g=D.jogos.filter(done),n=g.reduce((s,j)=>s+j.gc+j.gf,0)
 const V={j:vJ,c:vC,g:()=>vR('g'),a:()=>vR('a')};
 document.querySelectorAll('#cpt button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#cpt button').forEach(o=>o.setAttribute('aria-selected',o==b));V[b.dataset.v]()});
 if(typeof LG!=='undefined')$('cplogo').src=LG.cm;
-sumario();vJ();
+function ref(){sumario();const b=document.querySelector('#cpt button[aria-selected="true"]');V[b.dataset.v]()}window.copaRefresh=ref;sumario();vJ();
 })();
 </script>
-<script>(function(){const D=window.COPA;if(!D||typeof FLAGS==='undefined')return;const $=i=>document.getElementById(i),FL=n=>`<img class="fl${n==='Nepal'?' np':''}" src="${FLAGS[n]}" alt="${n}">`,done=j=>j.gc!=null;
+<script>window.homeRefresh=function(){const D=window.COPA;if(!D||typeof FLAGS==='undefined')return;const $=i=>document.getElementById(i),FL=n=>`<img class="fl${n==='Nepal'?' np':''}" src="${FLAGS[n]}" alt="${n}">`,done=j=>j.gc!=null;
 const P={};D.jogos.filter(done).forEach(j=>['casa','fora'].forEach(s=>(j.sum?j.sum[s]:[]).forEach(x=>{const p=P[x.n]||(P[x.n]={n:x.n,sel:D.jogadores[x.n].selecao,g:0,a:0,j:0});p.g+=x.g;p.a+=x.a;p.j++})));
 const PL=Object.values(P),T={};Object.keys(D.selecoes).forEach(t=>T[t]={t,j:0,v:0,e:0,d:0,gp:0,gc:0,pt:0});
 D.jogos.filter(done).forEach(j=>{const a=T[j.casa],b=T[j.fora];a.j++;b.j++;a.gp+=j.gc;a.gc+=j.gf;b.gp+=j.gf;b.gc+=j.gc;if(j.gc>j.gf){a.v++;b.d++;a.pt+=3}else if(j.gc<j.gf){b.v++;a.d++;b.pt+=3}else{a.e++;b.e++;a.pt++;b.pt++}});
@@ -393,8 +393,8 @@ const pj=Object.values(T).filter(t=>t.j>0),at=pj.slice().sort((a,b)=>b.gp/b.j-a.
 const sc=j=>`${j.casa} ${j.gc} x ${j.gf} ${j.fora}`;
 $('hds').innerHTML=[gl&&[`${Math.max(gl.gc,gl.gf)} x ${Math.min(gl.gc,gl.gf)}`,'Maior goleada: '+sc(gl)],mg&&[mg.gc+mg.gf,'Jogo com mais gols: '+sc(mg)],at&&[(at.gp/at.j).toFixed(1),'Melhor ataque: '+at.t+' (gols por jogo)'],df&&[(df.gc/df.j).toFixed(1),'Melhor defesa: '+df.t+' (gols sofridos por jogo)'],mm&&[(mm.g/mm.j).toFixed(1),'Melhor média de gols: '+mm.n]].filter(Boolean).map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small></div>`).join('');
 $('htg').innerHTML=TB.map((t,i)=>{const e=D.selecoes[t.t].elenco;return `<div class="tc"><div class="tt">${FL(t.t)}<h4>${t.t}</h4></div><ul>${e.map((p,k)=>`<li>${k===0?'<b>C</b>':'<i></i>'}${p}</li>`).join('')}</ul><div class="rc"><span><b>${i+1}º</b> · ${t.pt} pts</span><span>${t.v}V ${t.e}E ${t.d}D</span></div></div>`}).join('');
-document.querySelectorAll('a[data-tab]').forEach(a=>a.addEventListener('click',()=>setTimeout(()=>{const b=document.querySelector(`#cpt button[data-v="${a.dataset.tab}"]`);if(b)b.click()},80)));
-})();
+document.querySelectorAll('a[data-tab]').forEach(a=>a.onclick=()=>setTimeout(()=>{const b=document.querySelector(`#cpt button[data-v="${a.dataset.tab}"]`);if(b)b.click()},80));
+};window.homeRefresh();
 </script>
 <script>(function(){const P=['home','copa','trofeus','historia','regras','participar'],ID={copa:'copa',trofeus:'trofeus',ranking:'trofeus',lendas:'historia',historia:'historia',regras:'regras',inscricao:'participar',jogo:'home',explore:'home',top:'home'};
 function go(){let h=location.hash.slice(1),pg='home',tg=null;
@@ -404,6 +404,13 @@ function go(){let h=location.hash.slice(1),pg='home',tg=null;
  document.title=({home:'CNUF | Confederação Nacional United Football',copa:'III Copa do Mundo | CNUF',trofeus:'Troféus | CNUF',historia:'História | CNUF',regras:'Regras | CNUF',participar:'Participar | CNUF'})[pg];
  if(tg&&tg!=='top'&&document.getElementById(tg))document.getElementById(tg).scrollIntoView();else window.scrollTo(0,0)}
 addEventListener('hashchange',go);go();})();
+</script>
+<script>
+(function(){if(typeof ENDPOINT==='undefined'||!ENDPOINT||!window.COPA)return;
+fetch(ENDPOINT+'?action=copa&t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(d=>{
+ if(!d||!d.jogos)return;let ch=false;
+ d.jogos.forEach(r=>{const j=window.COPA.jogos.find(x=>x.id==r.id);if(!j)return;['gc','gf','par','sum','data','hora'].forEach(k=>{if(r[k]!==undefined&&r[k]!==null&&r[k]!==''&&JSON.stringify(j[k])!==JSON.stringify(r[k])){j[k]=r[k];ch=true}})});
+ if(ch){window.copaRefresh&&window.copaRefresh();window.homeRefresh&&window.homeRefresh()}}).catch(()=>{});})();
 </script>
 </body>
 </html>
