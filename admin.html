@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>CNUF | Painel da Copa</title>
+<style>
+:root{--bg:#040705;--panel:#0a110c;--line:#173a1f;--neon:#39ff6a;--tx:#e8f3ea;--mu:#8aa591;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,Segoe UI,sans-serif;padding:24px 5vw 60px;max-width:1000px;margin:auto}
+h1{color:var(--neon);margin:0 0 4px}h2{margin:0 0 6px;font-size:20px}p{color:var(--mu);margin:0 0 12px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin:18px 0}
+textarea,input,select{width:100%;background:#08100a;border:1px solid var(--line);color:var(--tx);padding:10px 12px;border-radius:6px;font:inherit}
+textarea{min-height:200px;font-family:ui-monospace,Consolas,monospace;font-size:14px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:12px}
+button{background:#39ff6a18;border:1px solid var(--neon);color:var(--neon);padding:10px 20px;border-radius:6px;font-weight:700;cursor:pointer}
+button:hover{background:var(--neon);color:#031207}
+.ok{color:var(--neon)}.warn{color:#ffd24a}.err{color:#ff7b7b}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:6px 0 12px}td,th{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:700px){.two{grid-template-columns:1fr}}
+</style></head><body>
+<h1>Painel da Copa CNUF</h1>
+<p>Cole as súmulas, agende os jogos e gere o arquivo <b>copa-data.js</b>. Depois é só substituí-lo no repositório do GitHub e o site se atualiza.</p>
+<div class="box"><h2>1. Adicionar súmula</h2><p>Cole o texto da súmula no mesmo formato do WhatsApp. O placar é calculado pela soma dos gols.</p>
+<textarea id="tx" placeholder="III COPA DO MUNDO CNUF - Itália 9x10 Butão (Rodada 4)&#10;&#10;ITÁLIA:&#10;Alex - 6 G&#10;..."></textarea>
+<p style="margin-top:10px"><button id="an">Analisar</button></p><div id="pv"></div></div>
+<div class="box"><h2>2. Agendar jogo</h2><div class="row"><select id="sj"></select><input id="sd" type="date"><input id="sh" type="time"></div><button id="ag">Salvar data e hora</button> <span id="ms"></span></div>
+<div class="box"><h2>3. Arquivo atualizado</h2><p>Copie ou baixe e substitua <b>copa-data.js</b> no GitHub (Add file &gt; Upload files, ou o lápis para editar).</p>
+<textarea id="out" readonly style="min-height:140px"></textarea><p style="margin-top:10px"><button id="cp">Copiar</button> <button id="dl">Baixar copa-data.js</button> <span id="ms2"></span></p></div>
+<script src="copa-data.js"></script>
+<script>
+const norm=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+const ALIAS={lfelipe:'LFellipe8',gm:'GMatias10'};
+function findTeam(s,D){const n=norm(s);return Object.keys(D.selecoes).find(t=>norm(t)===n)||null}
+function findPlayer(s,D){
+  let n=norm(s).replace(/zao$/,'');if(ALIAS[n])return ALIAS[n];
+  const k=Object.keys(D.jogadores);
+  let m=k.filter(x=>norm(x)===n);if(!m.length)m=k.filter(x=>norm(x).replace(/\d+$/,'')===n);
+  if(!m.length)m=k.filter(x=>norm(x).startsWith(n));
+  return m.length===1?m[0]:null;
+}
+function parseSumula(txt,D){
+  const W=[],P={casa:[],fora:[]};let casa=null,fora=null,tg=null,tf=null,r=null,sec=null;const par=[];
+  const lines=txt.split(/\r?\n/).map(l=>l.replace(/\*/g,'').trim()).filter(l=>l&&!/^_+$/.test(l));
+  for(const l of lines){
+    let m=l.match(/^(?:III COPA DO MUNDO CNUF\s*-\s*)?(.+?)\s+(?:(\d+)\s*[xX]\s*(\d+)|[xX])\s+(.+?)\s*\(Rodada\s*(\d+)\)/i);
+    if(m){casa=findTeam(m[1],D);fora=findTeam(m[4],D);tg=m[2]!=null?+m[2]:null;tf=m[3]!=null?+m[3]:null;r=+m[5];if(!casa||!fora)W.push('Seleção não reconhecida no título.');continue}
+    m=l.match(/^[A-Za-z]{3}\s+(\d+)\s*x\s*(\d+)\s+[A-Za-z]{3}$/);if(m){par.push(m[1]+'x'+m[2]);continue}
+    m=l.match(/^(.+?):$/);if(m){const t=findTeam(m[1],D);if(!t)W.push('Seleção não reconhecida: '+m[1]);sec=t===casa?'casa':t===fora?'fora':null;continue}
+    m=l.match(/^(.+?)\s*-\s*(.*)$/);
+    if(m){
+      if(!sec){W.push('Linha fora de uma seleção: '+l);continue}
+      const nome=m[1].replace(/\(.*?\)/g,'').trim(),e=/emprestad/i.test(m[1]);
+      const n=findPlayer(nome,D);if(!n){W.push('Jogador não reconhecido: '+nome);continue}
+      const g=+((m[2].match(/(\d+)\s*G/i)||[])[1]||0),a=+((m[2].match(/(\d+)\s*A\b/i)||[])[1]||0);
+      P[sec].push({n,g,a,e});
+    }
+  }
+  const gc=P.casa.reduce((s,x)=>s+x.g,0),gf=P.fora.reduce((s,x)=>s+x.g,0);
+  if(tg!=null&&(tg!==gc||tf!==gf))W.push(`Placar do título (${tg}x${tf}) difere da soma dos gols (${gc}x${gf}).`);
+  if(par.length){const a=par.reduce((s,x)=>s+ +x.split('x')[0],0),b=par.reduce((s,x)=>s+ +x.split('x')[1],0);if(a!==gc||b!==gf)W.push('Parciais não somam o placar.')}
+  if(r==null)W.push('Rodada não informada.');
+  return{r,casa,fora,gc,gf,par,lista:P,W};
+}
+function applySumula(D,p){
+  if(!p.casa||!p.fora)return 'Seleções inválidas.';
+  const j=D.jogos.find(x=>(x.r===p.r||p.r==null)&&((x.casa===p.casa&&x.fora===p.fora)||(x.casa===p.fora&&x.fora===p.casa)));
+  if(!j)return 'Nenhum jogo encontrado para esse confronto e rodada.';
+  const sw=j.casa!==p.casa;
+  j.gc=sw?p.gf:p.gc;j.gf=sw?p.gc:p.gf;j.sum={casa:sw?p.lista.fora:p.lista.casa,fora:sw?p.lista.casa:p.lista.fora};
+  if(p.par.length)j.par=sw?p.par.map(x=>x.split('x').reverse().join('x')):p.par;else delete j.par;
+  return null;
+}
+//if(typeof module!=='undefined')module.exports={parseSumula,applySumula,findPlayer,findTeam,norm};
+
+const D=JSON.parse(JSON.stringify(window.COPA)),$=i=>document.getElementById(i);let cur=null;
+function refresh(){$('out').value='window.COPA='+JSON.stringify(D)+';\n';
+ $('sj').innerHTML=D.jogos.map(j=>`<option value="${j.id}">Jogo ${j.id} · Rodada ${j.r} · ${j.casa} x ${j.fora}${j.gc!=null?` (${j.gc}x${j.gf})`:''}</option>`).join('')}
+function tbl(n,l){return `<b>${n}</b><table>${l.map(x=>`<tr><td>${x.n}${x.e?' (emprestado)':''}</td><td>${x.g} G</td><td>${x.a} A</td></tr>`).join('')}</table>`}
+$('an').onclick=()=>{cur=parseSumula($('tx').value,D);const p=cur;
+ let h=`<p class="${p.W.length?'warn':'ok'}">Rodada ${p.r??'?'} · ${p.casa||'?'} ${p.gc} x ${p.gf} ${p.fora||'?'}${p.par.length?' ('+p.par.join(' / ')+')':''}</p>`;
+ h+=p.W.map(w=>`<p class="warn">⚠ ${w}</p>`).join('')+`<div class="two"><div>${tbl(p.casa||'Casa',p.lista.casa)}</div><div>${tbl(p.fora||'Fora',p.lista.fora)}</div></div><button id="ap">Aplicar ao jogo</button>`;
+ $('pv').innerHTML=h;$('ap').onclick=()=>{const e=applySumula(D,cur);if(e){$('pv').insertAdjacentHTML('beforeend',`<p class="err">${e}</p>`);return}refresh();$('pv').innerHTML='<p class="ok">Súmula aplicada. Copie o arquivo atualizado abaixo.</p>';$('tx').value=''}};
+$('ag').onclick=()=>{const j=D.jogos.find(x=>x.id==$('sj').value);j.data=$('sd').value;j.hora=$('sh').value;refresh();$('ms').innerHTML='<span class="ok">Salvo.</span>'};
+$('cp').onclick=async()=>{await navigator.clipboard.writeText($('out').value);$('ms2').innerHTML='<span class="ok">Copiado.</span>'};
+$('dl').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([$('out').value],{type:'text/javascript'}));a.download='copa-data.js';a.click()};
+refresh();
+</script></body></html>
