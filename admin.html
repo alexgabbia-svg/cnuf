@@ -48,11 +48,11 @@ function parseSumula(txt,D){
       if(!sec){W.push('Linha fora de uma seleção: '+l);continue}
       const nome=m[1].replace(/\(.*?\)/g,'').trim(),e=/emprestad/i.test(m[1]);
       const n=findPlayer(nome,D);if(!n){W.push('Jogador não reconhecido: '+nome);continue}
-      const g=+((m[2].match(/(\d+)\s*G/i)||[])[1]||0),a=+((m[2].match(/(\d+)\s*A\b/i)||[])[1]||0);
-      P[sec].push({n,g,a,e});
+      const g=+((m[2].match(/(\d+)\s*G(?![A-Za-z])/i)||[])[1]||0),a=+((m[2].match(/(\d+)\s*A\b/i)||[])[1]||0),c=+((m[2].match(/(\d+)\s*GC/i)||[])[1]||0);
+      P[sec].push(c?{n,g,a,e,c}:{n,g,a,e});
     }
   }
-  const gc=P.casa.reduce((s,x)=>s+x.g,0),gf=P.fora.reduce((s,x)=>s+x.g,0);
+  const sm=(l,k)=>l.reduce((s,x)=>s+(x[k]||0),0),gc=sm(P.casa,'g')+sm(P.fora,'c'),gf=sm(P.fora,'g')+sm(P.casa,'c');
   if(tg!=null&&(tg!==gc||tf!==gf))W.push(`Placar do título (${tg}x${tf}) difere da soma dos gols (${gc}x${gf}).`);
   if(par.length){const a=par.reduce((s,x)=>s+ +x.split('x')[0],0),b=par.reduce((s,x)=>s+ +x.split('x')[1],0);if(a!==gc||b!==gf)W.push('Parciais não somam o placar.')}
   if(r==null)W.push('Rodada não informada.');
@@ -80,7 +80,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function lista(){$('sj').innerHTML=D.jogos.map(j=>`<option value="${j.id}">Jogo ${j.id} · Rodada ${j.r} · ${j.casa} x ${j.fora}</option>`).join('');
  $('lj').innerHTML='<table><tr><th>Jogo</th><th>Rodada</th><th>Confronto</th><th>Placar</th><th>Data</th></tr>'+D.jogos.map(j=>`<tr><td>${j.id}</td><td>${j.r}</td><td>${j.casa} x ${j.fora}</td><td>${j.gc!=null?`<span class="ok">${j.gc} x ${j.gf}</span>`:'-'}</td><td>${j.data?j.data.split('-').reverse().join('/')+' '+(j.hora||''):'-'}</td></tr>`).join('')+'</table>'}
 async function sync(){try{merge(await remote());$('st').innerHTML='<span class="ok">Conectado ao banco de dados do site.</span>'}catch(e){$('st').innerHTML='<span class="err">Não consegui ler o banco de dados (confira a implantação do Apps Script). Mostrando só os dados do arquivo.</span>'}lista()}
-function tbl(n,l){return `<b>${n}</b><table>${l.map(x=>`<tr><td>${x.n}${x.e?' (emprestado)':''}</td><td>${x.g} G</td><td>${x.a} A</td></tr>`).join('')}</table>`}
+function tbl(n,l){return `<b>${n}</b><table>${l.map(x=>`<tr><td>${x.n}${x.e?' (emprestado)':''}</td><td>${x.g} G</td><td>${x.a} A${x.c?' · '+x.c+' GC':''}</td></tr>`).join('')}</table>`}
 $('an').onclick=()=>{cur=parseSumula($('tx').value,D);const p=cur;
  let h=`<p class="${p.W.length?'warn':'ok'}">Rodada ${p.r??'?'} · ${p.casa||'?'} ${p.gc} x ${p.gf} ${p.fora||'?'}${p.par.length?' ('+p.par.join(' / ')+')':''}</p>`;
  h+=p.W.map(w=>`<p class="warn">⚠ ${w}</p>`).join('')+`<div class="two"><div>${tbl(p.casa||'Casa',p.lista.casa)}</div><div>${tbl(p.fora||'Fora',p.lista.fora)}</div></div><button id="ap">Publicar no site</button> <span id="ms1"></span>`;
