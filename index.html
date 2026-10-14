@@ -172,6 +172,19 @@ nav .l a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;heigh
 .dst>div b{font-size:22px}.dst small{display:block;margin-top:2px}
 @media(max-width:720px){.feat{grid-template-columns:1fr;text-align:center;justify-items:center;padding:22px}.feat img{height:110px}.prog>div{margin:auto}.fb{justify-content:center}}
 
+.bkt{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;align-items:center}
+.bkc{display:grid;gap:16px}.bkc h4{font:700 13px 'Chakra Petch';color:var(--neon);letter-spacing:.08em;text-transform:uppercase}
+.bm{background:linear-gradient(160deg,#0d1a11,var(--panel));border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.bm .bh{font-size:12px;color:var(--mu);margin-bottom:6px;display:flex;justify-content:space-between;gap:8px}
+.bm .bt{display:flex;align-items:center;gap:10px;padding:8px 0;font:700 15px 'Chakra Petch';color:var(--mu)}
+.bm .bt+.bt{border-top:1px solid var(--line)}.bm .bt.ph{font-weight:500;font-style:italic}.bm .bt.w{color:var(--tx)}
+.bm .bt b{margin-left:auto;font:700 20px 'Chakra Petch';color:var(--neon)}
+.bm details{margin:10px 0 0;border:0;background:none;box-shadow:none}.bm details[open]{box-shadow:none}
+.bm summary{padding:8px 0 0;font:600 13px Barlow;color:var(--neon);border-top:1px solid var(--line)}
+.bm details div{padding:10px 0 0;max-width:none;color:var(--tx)}
+.cmp{margin-top:22px;border:1px solid var(--gold);border-radius:14px;padding:24px;text-align:center;background:linear-gradient(135deg,#2a2208,var(--panel));box-shadow:0 0 40px #ffd24a30}
+.cmp small{color:var(--mu);letter-spacing:.1em}.cmp b{display:block;margin-top:6px;font:700 30px 'Chakra Petch';color:var(--gold)}.cmp .fl{--fh:34px;vertical-align:-8px;margin-right:8px}
+@media(max-width:900px){.bkt{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -207,7 +220,7 @@ nav .l a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;heigh
 <div class="cp-head"><img id="cplogo" alt="Copa do Mundo"><div><span class="live">EM ANDAMENTO</span><h2 style="margin:6px 0 0">III Copa do Mundo CNUF</h2></div></div>
 <p class="sub">Tabela de jogos, classificação, artilharia, assistências e súmulas de todas as partidas.</p>
 <div class="cp-sum" id="cps"></div>
-<div class="tabs" id="cpt"><button aria-selected="true" data-v="j">Jogos</button><button aria-selected="false" data-v="c">Classificação</button><button aria-selected="false" data-v="g">Artilharia</button><button aria-selected="false" data-v="a">Assistências</button></div>
+<div class="tabs" id="cpt"><button aria-selected="true" data-v="j">Jogos</button><button aria-selected="false" data-v="c">Classificação</button><button aria-selected="false" data-v="m">Mata-mata</button><button aria-selected="false" data-v="g">Artilharia</button><button aria-selected="false" data-v="a">Assistências</button></div>
 <div id="cpv"></div>
 </section>
 
@@ -337,9 +350,9 @@ document.getElementById("f").onsubmit=async e=>{e.preventDefault();const ok=docu
 const D=window.COPA;if(!D)return;const $=i=>document.getElementById(i);
 const FL=n=>`<img class="fl${n==='Nepal'?' np':''}" src="${FLAGS[n]}" alt="${n}">`;
 const fd=j=>j.data?j.data.split('-').reverse().join('/')+(j.hora?' · '+j.hora:''):'Data a definir';
-const done=j=>j.gc!=null;
+const done=j=>j.gc!=null;const ALL=()=>D.jogos.concat(D.mata||[]);
 function plStats(){const P={};
- D.jogos.filter(done).forEach(j=>['casa','fora'].forEach(s=>(j.sum?j.sum[s]:[]).forEach(x=>{const p=P[x.n]||(P[x.n]={n:x.n,sel:D.jogadores[x.n].selecao,g:0,a:0,j:0});p.g+=x.g;p.a+=x.a;p.j++})));
+ ALL().filter(done).forEach(j=>['casa','fora'].forEach(s=>(j.sum?j.sum[s]:[]).forEach(x=>{const p=P[x.n]||(P[x.n]={n:x.n,sel:D.jogadores[x.n].selecao,g:0,a:0,j:0});p.g+=x.g;p.a+=x.a;p.j++})));
  return Object.values(P)}
 function table(){const T={};Object.keys(D.selecoes).forEach(t=>T[t]={t,j:0,v:0,e:0,d:0,gp:0,gc:0,pt:0});
  D.jogos.filter(done).forEach(j=>{const a=T[j.casa],b=T[j.fora];a.j++;b.j++;a.gp+=j.gc;a.gc+=j.gf;b.gp+=j.gf;b.gc+=j.gc;
@@ -347,9 +360,9 @@ function table(){const T={};Object.keys(D.selecoes).forEach(t=>T[t]={t,j:0,v:0,e
  return Object.values(T).sort((x,y)=>y.pt-x.pt||(y.gp-y.gc)-(x.gp-x.gc)||y.gp-x.gp||x.t.localeCompare(y.t))}
 function pls(l){return l.slice().sort((a,b)=>b.g-a.g||b.a-a.a).map(x=>`<div class="pl"><span><b>${x.n}</b>${x.e?'<em>emprestado</em>':''}</span><span>${x.g} G${x.a?' · '+x.a+' A':''}${x.c?' · '+x.c+' contra':''}</span></div>`).join('')}
 function card(j){const d=done(j);
- return `<article class="gm ${d?'ok':''}"><div class="gh"><span>Jogo ${j.id}</span><span>${fd(j)}</span></div>
+ return `<article class="gm ${d?'ok':''}"><div class="gh"><span>Jogo ${j.id}${j.wo?' · W.O.':''}</span><span>${fd(j)}</span></div>
  <div class="gr"><span class="tm">${FL(j.casa)}${j.casa}</span><span class="sc ${d?'':'pd'}">${d?`${j.gc}<i>x</i>${j.gf}`:'x'}</span><span class="tm r">${j.fora}${FL(j.fora)}</span></div>
- ${d&&j.sum?`<details><summary>Ver súmula</summary><div>${j.par?`<div class="par">Parciais: ${j.par.join(' · ')}</div>`:''}<div class="sm"><div><h4>${j.casa.toUpperCase()}</h4>${pls(j.sum.casa)}</div><div><h4>${j.fora.toUpperCase()}</h4>${pls(j.sum.fora)}</div></div></div></details>`:''}</article>`}
+ ${j.wo?`<div class="par" style="margin-top:10px">W.O.: vitória de ${j.wo==='casa'?j.casa:j.fora}, o adversário não compareceu.</div>`:''}${d&&j.sum?`<details><summary>Ver súmula</summary><div>${j.par?`<div class="par">Parciais: ${j.par.join(' · ')}</div>`:''}<div class="sm"><div><h4>${j.casa.toUpperCase()}</h4>${pls(j.sum.casa)}</div><div><h4>${j.fora.toUpperCase()}</h4>${pls(j.sum.fora)}</div></div></div></details>`:''}</article>`}
 let fr='Todas';
 function vJ(){const rs=[...new Set(D.jogos.map(j=>j.r))];
  let h=`<div class="chips">${['Todas',...rs.map(r=>'Rodada '+r)].map(c=>`<button class="${c==fr?'on':''}">${c}</button>`).join('')}</div>`;
@@ -362,34 +375,44 @@ function vC(){const T=table();
 function vR(k){const L=plStats().filter(p=>p[k]>0).sort((a,b)=>b[k]-a[k]||b[k=='g'?'a':'g']-a[k=='g'?'a':'g']||a.j-b.j||a.n.localeCompare(b.n)),o=k=='g'?'a':'g';
  $('cpv').innerHTML=`<div class="tblw"><table class="tb"><thead><tr><th>#</th><th>Jogador</th><th>${k=='g'?'Gols':'Assist.'}</th><th>${k=='g'?'Assist.':'Gols'}</th><th>Jogos</th><th>Média</th></tr></thead><tbody>${L.map((p,i)=>`<tr class="${i==0?'top1':''}"><td>${i+1}</td><td><span class="t">${FL(p.sel)}${p.n}<small>${p.sel}</small></span></td><td class="big">${p[k]}</td><td>${p[o]}</td><td>${p.j}</td><td>${(p[k]/p.j).toFixed(1)}</td></tr>`).join('')}</tbody></table></div>
  <p class="sub" style="margin-top:12px;font-size:14px">Contam todas as partidas, inclusive as de jogadores emprestados.</p>`}
-function sumario(){const g=D.jogos.filter(done),n=g.reduce((s,j)=>s+j.gc+j.gf,0),P=plStats(),art=P.slice().sort((a,b)=>b.g-a.g||b.a-a.a)[0],ass=P.slice().sort((a,b)=>b.a-a.a||b.g-a.g)[0];
- $('cps').innerHTML=[[`${g.length}/${D.jogos.length}`,'Jogos disputados'],[n,'Gols marcados'],[g.length?(n/g.length).toFixed(1):'0','Gols por jogo'],[art?`${art.n} (${art.g})`:'-','Artilheiro'],[ass?`${ass.n} (${ass.a})`:'-','Líder de assistências']].map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small></div>`).join('')}
-const V={j:vJ,c:vC,g:()=>vR('g'),a:()=>vR('a')};
+function sumario(){const g=ALL().filter(done),gx=g.filter(j=>!j.wo),n=gx.reduce((s,j)=>s+j.gc+j.gf,0),P=plStats(),art=P.slice().sort((a,b)=>b.g-a.g||b.a-a.a)[0],ass=P.slice().sort((a,b)=>b.a-a.a||b.g-a.g)[0];
+ $('cps').innerHTML=[[`${g.length}/${ALL().length}`,'Jogos disputados'],[n,'Gols marcados'],[gx.length?(n/gx.length).toFixed(1):'0','Gols por jogo'],[art?`${art.n} (${art.g})`:'-','Artilheiro'],[ass?`${ass.n} (${ass.a})`:'-','Líder de assistências']].map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small></div>`).join('')}
+const LB={22:'Quartas 1',23:'Quartas 2',24:'Semifinal 1',25:'Semifinal 2'};
+const lab=x=>x.pos?`${x.pos}º colocado`:`Vencedor de ${LB[x.venc]}`;
+const win=m=>done(m)?(m.gc>m.gf?m.casa:m.gf>m.gc?m.fora:(m.sum&&m.sum.pen)||null):null;
+function resolve(){const fin=D.jogos.every(done),T=table(),W={};(D.mata||[]).forEach(m=>{const f=x=>x.pos?(fin?T[x.pos-1].t:null):(W[x.venc]||null);m.casa=f(m.a);m.fora=f(m.b);if(done(m)&&m.casa&&m.fora)W[m.id]=win(m)})}
+window.resolveMata=resolve;
+function bm(m){const w=win(m),tie=done(m)&&m.gc===m.gf,row=(sd,x)=>{const t=m[sd];return `<div class="bt ${t?(w===t?'w':''):'ph'}">${t?FL(t)+t:lab(x)}${done(m)?`<b>${sd==='casa'?m.gc:m.gf}</b>`:''}</div>`};
+ return `<div class="bm"><div class="bh"><span>${m.fase}</span><span>${m.data?fd(m):'Data a definir'}${tie&&m.sum&&m.sum.pen?' · pênaltis: '+m.sum.pen:''}</span></div>${row('casa',m.a)}${row('fora',m.b)}${done(m)&&m.sum?`<details><summary>Ver súmula</summary><div>${m.par?`<div class="par">Parciais: ${m.par.join(' · ')}</div>`:''}<div class="sm"><div><h4>${m.casa.toUpperCase()}</h4>${pls(m.sum.casa)}</div><div><h4>${m.fora.toUpperCase()}</h4>${pls(m.sum.fora)}</div></div></div></details>`:''}</div>`}
+function vM(){const M=D.mata||[],q=M.filter(m=>m.r===8),sf=M.filter(m=>m.r===9),f=M.filter(m=>m.r===10),fin=D.jogos.every(done),w=f[0]&&win(f[0]);
+ $('cpv').innerHTML=`${fin?'':'<p class="sub">A chave é definida ao fim da fase única, conforme a classificação final.</p>'}<div class="bkt"><div class="bkc"><h4>Quartas de final</h4>${q.map(bm).join('')}</div><div class="bkc"><h4>Semifinais</h4>${sf.map(bm).join('')}</div><div class="bkc"><h4>Final</h4>${f.map(bm).join('')}</div></div>${w?`<div class="cmp"><small>CAMPEÃ DA III COPA DO MUNDO CNUF</small><b>${FL(w)} ${w}</b></div>`:''}`}
+const V={j:vJ,c:vC,m:vM,g:()=>vR('g'),a:()=>vR('a')};
 document.querySelectorAll('#cpt button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#cpt button').forEach(o=>o.setAttribute('aria-selected',o==b));V[b.dataset.v]()});
 if(typeof LG!=='undefined')$('cplogo').src=LG.cm;
-function ref(){sumario();const b=document.querySelector('#cpt button[aria-selected="true"]');V[b.dataset.v]()}window.copaRefresh=ref;sumario();vJ();
+function ref(){resolve();sumario();const b=document.querySelector('#cpt button[aria-selected="true"]');V[b.dataset.v]()}window.copaRefresh=ref;resolve();sumario();vJ();
 })();
 </script>
-<script>window.homeRefresh=function(){const D=window.COPA;if(!D||typeof FLAGS==='undefined')return;const $=i=>document.getElementById(i),FL=n=>`<img class="fl${n==='Nepal'?' np':''}" src="${FLAGS[n]}" alt="${n}">`,done=j=>j.gc!=null;
-const P={};D.jogos.filter(done).forEach(j=>['casa','fora'].forEach(s=>(j.sum?j.sum[s]:[]).forEach(x=>{const p=P[x.n]||(P[x.n]={n:x.n,sel:D.jogadores[x.n].selecao,g:0,a:0,j:0});p.g+=x.g;p.a+=x.a;p.j++})));
+<script>window.homeRefresh=function(){const D=window.COPA;if(!D||typeof FLAGS==='undefined')return;window.resolveMata&&window.resolveMata();const ALL=D.jogos.concat(D.mata||[]);const $=i=>document.getElementById(i),FL=n=>`<img class="fl${n==='Nepal'?' np':''}" src="${FLAGS[n]}" alt="${n}">`,done=j=>j.gc!=null;
+const P={};ALL.filter(done).forEach(j=>['casa','fora'].forEach(s=>(j.sum?j.sum[s]:[]).forEach(x=>{const p=P[x.n]||(P[x.n]={n:x.n,sel:D.jogadores[x.n].selecao,g:0,a:0,j:0});p.g+=x.g;p.a+=x.a;p.j++})));
 const PL=Object.values(P),T={};Object.keys(D.selecoes).forEach(t=>T[t]={t,j:0,v:0,e:0,d:0,gp:0,gc:0,pt:0});
 D.jogos.filter(done).forEach(j=>{const a=T[j.casa],b=T[j.fora];a.j++;b.j++;a.gp+=j.gc;a.gc+=j.gf;b.gp+=j.gf;b.gc+=j.gc;if(j.gc>j.gf){a.v++;b.d++;a.pt+=3}else if(j.gc<j.gf){b.v++;a.d++;b.pt+=3}else{a.e++;b.e++;a.pt++;b.pt++}});
 const TB=Object.values(T).sort((x,y)=>y.pt-x.pt||(y.gp-y.gc)-(x.gp-x.gc)||y.gp-x.gp||x.t.localeCompare(y.t));
-const g=D.jogos.filter(done),tot=D.jogos.length,n=g.reduce((s,j)=>s+j.gc+j.gf,0),art=PL.slice().sort((a,b)=>b.g-a.g||b.a-a.a),ass=PL.slice().sort((a,b)=>b.a-a.a||b.g-a.g);
+const g=D.jogos.filter(done),tot=D.jogos.length,gx=g.filter(j=>!j.wo),n=gx.reduce((s,j)=>s+j.gc+j.gf,0),art=PL.slice().sort((a,b)=>b.g-a.g||b.a-a.a),ass=PL.slice().sort((a,b)=>b.a-a.a||b.g-a.g);
 const pct=Math.round(g.length/tot*100),fin=g.length===tot;
 if(typeof LG!=='undefined')$('hlogo').src=LG.cm;
 $('hsub').textContent=fin?'Fase única concluída. Agora é mata-mata: quartas, semifinais e final.':`Fase única, todos contra todos. ${g.length} de ${tot} jogos disputados.`;
 $('hpt').textContent=`${pct}% da fase única concluída${fin?'':' · Em seguida: quartas de final, semifinais e final'}`;
 setTimeout(()=>$('hpb').style.width=pct+'%',250);
-$('hst').innerHTML=[[`${g.length}/${tot}`,'Jogos disputados'],[n,'Gols marcados'],[g.length?(n/g.length).toFixed(1):'0','Gols por jogo'],[art[0]?`${art[0].n} (${art[0].g})`:'-','Artilheiro'],[ass[0]?`${ass[0].n} (${ass[0].a})`:'-','Líder de assistências']].map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small></div>`).join('');
+$('hst').innerHTML=[[`${g.length}/${tot}`,'Jogos disputados'],[n,'Gols marcados'],[gx.length?(n/gx.length).toFixed(1):'0','Gols por jogo'],[art[0]?`${art[0].n} (${art[0].g})`:'-','Artilheiro'],[ass[0]?`${ass[0].n} (${ass[0].a})`:'-','Líder de assistências']].map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small></div>`).join('');
 $('hcl').innerHTML=`<div class="mr h"><span>#</span><span class="n">Seleção</span><span>J</span><span>SG</span><span>Pts</span></div>`+TB.map((t,i)=>`<div class="mr ${i<2?'z1':''}"><span>${i+1}</span><span class="t">${FL(t.t)}${t.t}</span><span>${t.j}</span><span>${t.gp-t.gc}</span><b>${t.pt}</b></div>`).join('');
 const row=(j,s)=>`<div class="mg"><span class="tt">${FL(j.casa)}${j.casa}</span><b>${s}</b><span class="tt r">${j.fora}${FL(j.fora)}</span></div>`;
 $('hrs').innerHTML=g.slice().sort((a,b)=>b.id-a.id).slice(0,4).map(j=>row(j,`${j.gc}<i>x</i>${j.gf}`)).join('')||'<p class="sub">Sem jogos ainda.</p>';
 $('hpx').innerHTML=D.jogos.filter(j=>!done(j)).slice(0,3).map(j=>row(j,'<i>x</i>')).join('')||'<p class="sub">Fase única concluída.</p>';
 const rk=(L,k,o)=>L.slice(0,4).map((p,i)=>`<div class="mr" style="grid-template-columns:22px 1fr 34px 34px"><span>${i+1}</span><span class="t">${FL(p.sel)}${p.n}</span><b>${p[k]}</b><span>${p[o]}${o==='a'?'A':'G'}</span></div>`).join('');
 $('hat').innerHTML=rk(art,'g','a');$('has').innerHTML=rk(ass,'a','g');
-const gl=g.slice().sort((a,b)=>Math.abs(b.gc-b.gf)-Math.abs(a.gc-a.gf))[0],mg=g.slice().sort((a,b)=>(b.gc+b.gf)-(a.gc+a.gf))[0];
-const pj=Object.values(T).filter(t=>t.j>0),at=pj.slice().sort((a,b)=>b.gp/b.j-a.gp/a.j)[0],df=pj.slice().sort((a,b)=>a.gc/a.j-b.gc/b.j)[0],mm=PL.filter(p=>p.j>=2).sort((a,b)=>b.g/b.j-a.g/a.j)[0];
+const U={};Object.keys(D.selecoes).forEach(t=>U[t]={t,j:0,gp:0,gc:0});gx.forEach(j=>{const a=U[j.casa],b=U[j.fora];a.j++;b.j++;a.gp+=j.gc;a.gc+=j.gf;b.gp+=j.gf;b.gc+=j.gc});
+const gl=gx.slice().sort((a,b)=>Math.abs(b.gc-b.gf)-Math.abs(a.gc-a.gf))[0],mg=gx.slice().sort((a,b)=>(b.gc+b.gf)-(a.gc+a.gf))[0];
+const pj=Object.values(U).filter(t=>t.j>0),at=pj.slice().sort((a,b)=>b.gp/b.j-a.gp/a.j)[0],df=pj.slice().sort((a,b)=>a.gc/a.j-b.gc/b.j)[0],mm=PL.filter(p=>p.j>=2).sort((a,b)=>b.g/b.j-a.g/a.j)[0];
 const sc=j=>`${j.casa} ${j.gc} x ${j.gf} ${j.fora}`;
 $('hds').innerHTML=[gl&&[`${Math.max(gl.gc,gl.gf)} x ${Math.min(gl.gc,gl.gf)}`,'Maior goleada: '+sc(gl)],mg&&[mg.gc+mg.gf,'Jogo com mais gols: '+sc(mg)],at&&[(at.gp/at.j).toFixed(1),'Melhor ataque: '+at.t+' (gols por jogo)'],df&&[(df.gc/df.j).toFixed(1),'Melhor defesa: '+df.t+' (gols sofridos por jogo)'],mm&&[(mm.g/mm.j).toFixed(1),'Melhor média de gols: '+mm.n]].filter(Boolean).map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small></div>`).join('');
 $('htg').innerHTML=TB.map((t,i)=>{const e=D.selecoes[t.t].elenco;return `<div class="tc"><div class="tt">${FL(t.t)}<h4>${t.t}</h4></div><ul>${e.map((p,k)=>`<li>${k===0?'<b>C</b>':'<i></i>'}${p}</li>`).join('')}</ul><div class="rc"><span><b>${i+1}º</b> · ${t.pt} pts</span><span>${t.v}V ${t.e}E ${t.d}D</span></div></div>`}).join('');
@@ -409,7 +432,10 @@ addEventListener('hashchange',go);go();})();
 (function(){if(typeof ENDPOINT==='undefined'||!ENDPOINT||!window.COPA)return;
 fetch(ENDPOINT+'?action=copa&t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(d=>{
  if(!d||!d.jogos)return;let ch=false;
- d.jogos.forEach(r=>{const j=window.COPA.jogos.find(x=>x.id==r.id);if(!j)return;['gc','gf','par','sum','data','hora'].forEach(k=>{if(r[k]!==undefined&&r[k]!==null&&r[k]!==''&&JSON.stringify(j[k])!==JSON.stringify(r[k])){j[k]=r[k];ch=true}})});
+ d.jogos.forEach(r=>{const j=window.COPA.jogos.find(x=>x.id==r.id);if(!j)return;const n=Object.assign({},j);
+  ['gc','gf','par','sum','data','hora','wo'].forEach(k=>{if(r[k]!==undefined&&r[k]!==null&&r[k]!=='')n[k]=r[k]});
+  if(r.wo){delete n.sum;delete n.par}else if(r.sum)delete n.wo;
+  if(JSON.stringify(n)!==JSON.stringify(j)){Object.keys(j).forEach(k=>delete j[k]);Object.assign(j,n);ch=true}});
  if(ch){window.copaRefresh&&window.copaRefresh();window.homeRefresh&&window.homeRefresh()}}).catch(()=>{});})();
 </script>
 </body>
