@@ -22,7 +22,10 @@ table{border-collapse:collapse;width:100%;font-size:14px;margin:6px 0 12px}td,th
 <textarea id="tx" placeholder="III COPA DO MUNDO CNUF - Marrocos x Itália (Rodada 6)&#10;&#10;MARROCOS:&#10;Gb10 - 3 G / 1 A&#10;..."></textarea>
 <p style="margin-top:10px"><button id="an">Analisar</button></p><div id="pv"></div></div>
 <div class="box"><h2>2. Agendar jogo</h2><div class="row"><select id="sj"></select><input id="sd" type="date"><input id="sh" type="time"></div><button id="ag">Salvar data e hora</button> <span id="ms"></span></div>
-<div class="box"><h2>3. Jogos</h2><p id="st">Carregando...</p><div id="lj"></div></div>
+<div class="box"><h2>3. Registrar W.O.</h2><p>Para jogo em que um time não compareceu. Vence quem apareceu. O placar padrão é 3 x 0 e você pode mudar (gols do vencedor, depois do perdedor).</p>
+<div class="row"><select id="wj"></select><select id="wv"></select><input id="wg" type="number" min="0" value="3" title="Gols do vencedor"><input id="wp" type="number" min="0" value="0" title="Gols do perdedor"></div>
+<button id="wb">Registrar W.O.</button> <span id="mw"></span></div>
+<div class="box"><h2>4. Jogos</h2><p id="st">Carregando...</p><div id="lj"></div></div>
 <script src="copa-data.js"></script>
 <script>
 const norm=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
@@ -74,11 +77,12 @@ const ENDPOINT="https://script.google.com/macros/s/AKfycbzjHRyMBhgdxPH_mt_laZMd5
 const D=JSON.parse(JSON.stringify(window.COPA)),$=i=>document.getElementById(i);let cur=null;
 const pw=$('pw');pw.value=sessionStorage.getItem('cnufpw')||'';pw.oninput=()=>sessionStorage.setItem('cnufpw',pw.value);
 async function remote(){const r=await fetch(ENDPOINT+'?action=copa&t='+Date.now(),{cache:'no-store'});return (await r.json()).jogos||[]}
-function merge(rem){rem.forEach(r=>{const j=D.jogos.find(x=>x.id==r.id);if(!j)return;['gc','gf','par','sum','data','hora'].forEach(k=>{if(r[k]!==undefined&&r[k]!==null&&r[k]!=='')j[k]=r[k]})})}
+function merge(rem){rem.forEach(r=>{const j=D.jogos.find(x=>x.id==r.id);if(!j)return;['gc','gf','par','sum','data','hora','wo'].forEach(k=>{if(r[k]!==undefined&&r[k]!==null&&r[k]!=='')j[k]=r[k]});if(r.wo){delete j.sum;delete j.par}else if(r.sum)delete j.wo})}
 async function post(o){await fetch(ENDPOINT,{method:'POST',mode:'no-cors',body:new URLSearchParams(Object.assign({senha:pw.value},o))})}
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-function lista(){$('sj').innerHTML=D.jogos.map(j=>`<option value="${j.id}">Jogo ${j.id} · Rodada ${j.r} · ${j.casa} x ${j.fora}</option>`).join('');
- $('lj').innerHTML='<table><tr><th>Jogo</th><th>Rodada</th><th>Confronto</th><th>Placar</th><th>Data</th></tr>'+D.jogos.map(j=>`<tr><td>${j.id}</td><td>${j.r}</td><td>${j.casa} x ${j.fora}</td><td>${j.gc!=null?`<span class="ok">${j.gc} x ${j.gf}</span>`:'-'}</td><td>${j.data?j.data.split('-').reverse().join('/')+' '+(j.hora||''):'-'}</td></tr>`).join('')+'</table>'}
+function wopts(){const j=D.jogos.find(x=>x.id==$('wj').value);$('wv').innerHTML=j?`<option value="casa">Venceu: ${j.casa}</option><option value="fora">Venceu: ${j.fora}</option>`:''}
+function lista(){const op=D.jogos.map(j=>`<option value="${j.id}">Jogo ${j.id} · Rodada ${j.r} · ${j.casa} x ${j.fora}</option>`).join('');$('sj').innerHTML=op;$('wj').innerHTML=op;wopts();
+ $('lj').innerHTML='<table><tr><th>Jogo</th><th>Rodada</th><th>Confronto</th><th>Placar</th><th>Data</th></tr>'+D.jogos.map(j=>`<tr><td>${j.id}</td><td>${j.r}</td><td>${j.casa} x ${j.fora}</td><td>${j.gc!=null?`<span class="ok">${j.gc} x ${j.gf}${j.wo?' (W.O.)':''}</span>`:'-'}</td><td>${j.data?j.data.split('-').reverse().join('/')+' '+(j.hora||''):'-'}</td></tr>`).join('')+'</table>'}
 async function sync(){try{merge(await remote());$('st').innerHTML='<span class="ok">Conectado ao banco de dados do site.</span>'}catch(e){$('st').innerHTML='<span class="err">Não consegui ler o banco de dados (confira a implantação do Apps Script). Mostrando só os dados do arquivo.</span>'}lista()}
 function tbl(n,l){return `<b>${n}</b><table>${l.map(x=>`<tr><td>${x.n}${x.e?' (emprestado)':''}</td><td>${x.g} G</td><td>${x.a} A${x.c?' · '+x.c+' GC':''}</td></tr>`).join('')}</table>`}
 $('an').onclick=()=>{cur=parseSumula($('tx').value,D);const p=cur;
@@ -95,5 +99,11 @@ $('an').onclick=()=>{cur=parseSumula($('tx').value,D);const p=cur;
 $('ag').onclick=async()=>{const m=$('ms');if(!pw.value){m.innerHTML='<span class="err">Digite a senha.</span>';return}
  const id=+$('sj').value,d=$('sd').value,h=$('sh').value;m.textContent='Salvando...';await post({action:'agenda',id,data:d,hora:h});await wait(1800);
  try{const r=(await remote()).find(x=>x.id==id);if(r&&r.data===d){m.innerHTML='<span class="ok">Salvo.</span>';merge([r])}else m.innerHTML='<span class="err">Não confirmou. Confira a senha.</span>'}catch(x){m.innerHTML='<span class="err">Não consegui confirmar.</span>'}lista()};
+$('wj').onchange=wopts;
+$('wb').onclick=async()=>{const m=$('mw');if(!pw.value){m.innerHTML='<span class="err">Digite a senha.</span>';return}
+ const id=+$('wj').value,w=$('wv').value,a=+$('wg').value,b=+$('wp').value,j=D.jogos.find(x=>x.id==id),nome=w==='casa'?j.casa:j.fora;
+ if(!confirm(`Registrar W.O. no jogo ${id} (${j.casa} x ${j.fora}): vitória de ${nome} por ${a} x ${b}?`))return;
+ m.textContent='Salvando...';await post({action:'wo',id,wo:w,gc:w==='casa'?a:b,gf:w==='casa'?b:a});await wait(1800);
+ try{const r=(await remote()).find(x=>x.id==id);if(r&&r.wo===w){m.innerHTML=`<span class="ok">W.O. registrado: vitória de ${nome}.</span>`;merge([r])}else m.innerHTML='<span class="err">Não confirmou. Confira a senha e a implantação do Apps Script.</span>'}catch(x){m.innerHTML='<span class="err">Não consegui confirmar.</span>'}lista()};
 sync();
 </script></body></html>
