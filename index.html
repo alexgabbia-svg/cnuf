@@ -345,7 +345,7 @@ function table(){const T={};Object.keys(D.selecoes).forEach(t=>T[t]={t,j:0,v:0,e
  D.jogos.filter(done).forEach(j=>{const a=T[j.casa],b=T[j.fora];a.j++;b.j++;a.gp+=j.gc;a.gc+=j.gf;b.gp+=j.gf;b.gc+=j.gc;
   if(j.gc>j.gf){a.v++;b.d++;a.pt+=3}else if(j.gc<j.gf){b.v++;a.d++;b.pt+=3}else{a.e++;b.e++;a.pt++;b.pt++}});
  return Object.values(T).sort((x,y)=>y.pt-x.pt||(y.gp-y.gc)-(x.gp-x.gc)||y.gp-x.gp||x.t.localeCompare(y.t))}
-function pls(l){return l.slice().sort((a,b)=>b.g-a.g||b.a-a.a).map(x=>`<div class="pl"><span><b>${x.n}</b>${x.e?'<em>emprestado</em>':''}</span><span>${x.g} G${x.a?' · '+x.a+' A':''}</span></div>`).join('')}
+function pls(l){return l.slice().sort((a,b)=>b.g-a.g||b.a-a.a).map(x=>`<div class="pl"><span><b>${x.n}</b>${x.e?'<em>emprestado</em>':''}</span><span>${x.g} G${x.a?' · '+x.a+' A':''}${x.c?' · '+x.c+' contra':''}</span></div>`).join('')}
 function card(j){const d=done(j);
  return `<article class="gm ${d?'ok':''}"><div class="gh"><span>Jogo ${j.id}</span><span>${fd(j)}</span></div>
  <div class="gr"><span class="tm">${FL(j.casa)}${j.casa}</span><span class="sc ${d?'':'pd'}">${d?`${j.gc}<i>x</i>${j.gf}`:'x'}</span><span class="tm r">${j.fora}${FL(j.fora)}</span></div>
