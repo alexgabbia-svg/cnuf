@@ -18,7 +18,7 @@ table{border-collapse:collapse;width:100%;font-size:14px;margin:6px 0 12px}td,th
 <h1>Painel da Copa CNUF</h1>
 <p>Lance súmulas e datas direto daqui. O site se atualiza sozinho em alguns segundos, sem mexer no GitHub.</p>
 <div class="box"><h2>Senha do painel</h2><div class="row"><input id="pw" type="password" placeholder="Senha definida no Code.gs" autocomplete="current-password"></div><p>Fica salva só nesta aba do navegador.</p></div>
-<div class="box"><h2>1. Lançar súmula</h2><p>Cole a súmula no formato do WhatsApp. O placar é calculado pela soma dos gols.</p>
+<div class="box"><h2>1. Lançar súmula</h2><p>Cole a súmula no formato do WhatsApp. O placar é calculado pela soma dos gols. No mata-mata, use (Quartas de final), (Semifinal) ou (Final) no título e, se houver empate, uma linha Pênaltis: seguida da seleção vencedora.</p>
 <textarea id="tx" placeholder="III COPA DO MUNDO CNUF - Marrocos x Itália (Rodada 6)&#10;&#10;MARROCOS:&#10;Gb10 - 3 G / 1 A&#10;..."></textarea>
 <p style="margin-top:10px"><button id="an">Analisar</button></p><div id="pv"></div></div>
 <div class="box"><h2>2. Agendar jogo</h2><div class="row"><select id="sj"></select><input id="sd" type="date"><input id="sh" type="time"></div><button id="ag">Salvar data e hora</button> <span id="ms"></span></div>
@@ -39,12 +39,13 @@ function findPlayer(s,D){
   return m.length===1?m[0]:null;
 }
 function parseSumula(txt,D){
-  const W=[],P={casa:[],fora:[]};let casa=null,fora=null,tg=null,tf=null,r=null,sec=null;const par=[];
+  const W=[],P={casa:[],fora:[]};let pen=null,casa=null,fora=null,tg=null,tf=null,r=null,sec=null;const par=[];
   const lines=txt.split(/\r?\n/).map(l=>l.replace(/\*/g,'').trim()).filter(l=>l&&!/^_+$/.test(l));
   for(const l of lines){
-    let m=l.match(/^(?:III COPA DO MUNDO CNUF\s*-\s*)?(.+?)\s+(?:(\d+)\s*[xX]\s*(\d+)|[xX])\s+(.+?)\s*\(Rodada\s*(\d+)\)/i);
-    if(m){casa=findTeam(m[1],D);fora=findTeam(m[4],D);tg=m[2]!=null?+m[2]:null;tf=m[3]!=null?+m[3]:null;r=+m[5];if(!casa||!fora)W.push('Seleção não reconhecida no título.');continue}
+    let m=l.match(/^(?:III COPA DO MUNDO CNUF\s*-\s*)?(.+?)\s+(?:(\d+)\s*[xX]\s*(\d+)|[xX])\s+(.+?)\s*\((?:Rodada\s*(\d+)|(Quartas(?: de final)?|Semifinal\s*\d?|Final))\)/i);
+    if(m){casa=findTeam(m[1],D);fora=findTeam(m[4],D);tg=m[2]!=null?+m[2]:null;tf=m[3]!=null?+m[3]:null;r=m[5]!=null?+m[5]:/^quartas/i.test(m[6])?8:/^semi/i.test(m[6])?9:10;if(!casa||!fora)W.push('Seleção não reconhecida no título.');continue}
     m=l.match(/^[A-Za-z]{3}\s+(\d+)\s*x\s*(\d+)\s+[A-Za-z]{3}$/);if(m){par.push(m[1]+'x'+m[2]);continue}
+    m=l.match(/^p[eê]naltis?\s*[:\-]\s*(.+)$/i);if(m){pen=findTeam(m[1].replace(/\s*\d+\s*x\s*\d+/i,'').trim(),D);if(!pen)W.push('Seleção dos pênaltis não reconhecida.');continue}
     m=l.match(/^(.+?):$/);if(m){const t=findTeam(m[1],D);if(!t)W.push('Seleção não reconhecida: '+m[1]);sec=t===casa?'casa':t===fora?'fora':null;continue}
     m=l.match(/^(.+?)\s*-\s*(.*)$/);
     if(m){
@@ -59,33 +60,41 @@ function parseSumula(txt,D){
   if(tg!=null&&(tg!==gc||tf!==gf))W.push(`Placar do título (${tg}x${tf}) difere da soma dos gols (${gc}x${gf}).`);
   if(par.length){const a=par.reduce((s,x)=>s+ +x.split('x')[0],0),b=par.reduce((s,x)=>s+ +x.split('x')[1],0);if(a!==gc||b!==gf)W.push('Parciais não somam o placar.')}
   if(r==null)W.push('Rodada não informada.');
-  return{r,casa,fora,gc,gf,par,lista:P,W};
+  if(r>=8&&gc===gf&&!pen)W.push('Empate no mata-mata: informe a linha "Pênaltis: <seleção vencedora>".');
+  return{r,casa,fora,gc,gf,par,pen:gc===gf?pen:null,lista:P,W};
 }
-function findJogo(D,p){return D.jogos.find(x=>(x.r===p.r||p.r==null)&&((x.casa===p.casa&&x.fora===p.fora)||(x.casa===p.fora&&x.fora===p.casa)))}
+function findJogo(D,p){return D.jogos.concat(D.mata||[]).find(x=>(x.r===p.r||p.r==null)&&((x.casa===p.casa&&x.fora===p.fora)||(x.casa===p.fora&&x.fora===p.casa)))}
 function applySumula(D,p){
   if(!p.casa||!p.fora)return 'Seleções inválidas.';
   const j=findJogo(D,p);
   if(!j)return 'Nenhum jogo encontrado para esse confronto e rodada.';
   const sw=j.casa!==p.casa;
   j.gc=sw?p.gf:p.gc;j.gf=sw?p.gc:p.gf;j.sum={casa:sw?p.lista.fora:p.lista.casa,fora:sw?p.lista.casa:p.lista.fora};
+  if(p.pen)j.sum.pen=p.pen;
   if(p.par.length)j.par=sw?p.par.map(x=>x.split('x').reverse().join('x')):p.par;else delete j.par;
   return null;
 }
-//if(typeof module!=='undefined')module.exports={parseSumula,applySumula,findJogo,findPlayer,findTeam,norm};
+function resolveMata(D){const done=j=>j.gc!=null,fin=D.jogos.every(done),T={};
+  Object.keys(D.selecoes).forEach(t=>T[t]={t,pt:0,gp:0,gc:0});
+  D.jogos.filter(done).forEach(j=>{const a=T[j.casa],b=T[j.fora];a.gp+=j.gc;a.gc+=j.gf;b.gp+=j.gf;b.gc+=j.gc;if(j.gc>j.gf)a.pt+=3;else if(j.gc<j.gf)b.pt+=3;else{a.pt++;b.pt++}});
+  const tb=Object.values(T).sort((x,y)=>y.pt-x.pt||(y.gp-y.gc)-(x.gp-x.gc)||y.gp-x.gp||x.t.localeCompare(y.t)),W={};
+  (D.mata||[]).forEach(m=>{const f=s=>s.pos?(fin?tb[s.pos-1].t:null):(W[s.venc]||null);m.casa=f(m.a);m.fora=f(m.b);
+    if(done(m)&&m.casa&&m.fora)W[m.id]=m.gc>m.gf?m.casa:m.gf>m.gc?m.fora:(m.sum&&m.sum.pen)||null})}
+//if(typeof module!=='undefined')module.exports={parseSumula,applySumula,findJogo,resolveMata,findPlayer,findTeam,norm};
 
 const ENDPOINT="https://script.google.com/macros/s/AKfycbzjHRyMBhgdxPH_mt_laZMd5aPOXD8jluYe-jI4VlEDT4AEubmX1GfxsUOO8ynxC3Na/exec";
 const D=JSON.parse(JSON.stringify(window.COPA)),$=i=>document.getElementById(i);let cur=null;
 const pw=$('pw');pw.value=sessionStorage.getItem('cnufpw')||'';pw.oninput=()=>sessionStorage.setItem('cnufpw',pw.value);
 async function remote(){const r=await fetch(ENDPOINT+'?action=copa&t='+Date.now(),{cache:'no-store'});return (await r.json()).jogos||[]}
-function merge(rem){rem.forEach(r=>{const j=D.jogos.find(x=>x.id==r.id);if(!j)return;['gc','gf','par','sum','data','hora','wo'].forEach(k=>{if(r[k]!==undefined&&r[k]!==null&&r[k]!=='')j[k]=r[k]});if(r.wo){delete j.sum;delete j.par}else if(r.sum)delete j.wo})}
+function merge(rem){rem.forEach(r=>{const j=D.jogos.concat(D.mata||[]).find(x=>x.id==r.id);if(!j)return;['gc','gf','par','sum','data','hora','wo'].forEach(k=>{if(r[k]!==undefined&&r[k]!==null&&r[k]!=='')j[k]=r[k]});if(r.wo){delete j.sum;delete j.par}else if(r.sum)delete j.wo})}
 async function post(o){await fetch(ENDPOINT,{method:'POST',mode:'no-cors',body:new URLSearchParams(Object.assign({senha:pw.value},o))})}
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function wopts(){const j=D.jogos.find(x=>x.id==$('wj').value);$('wv').innerHTML=j?`<option value="casa">Venceu: ${j.casa}</option><option value="fora">Venceu: ${j.fora}</option>`:''}
-function lista(){const op=D.jogos.map(j=>`<option value="${j.id}">Jogo ${j.id} · Rodada ${j.r} · ${j.casa} x ${j.fora}</option>`).join('');$('sj').innerHTML=op;$('wj').innerHTML=op;wopts();
- $('lj').innerHTML='<table><tr><th>Jogo</th><th>Rodada</th><th>Confronto</th><th>Placar</th><th>Data</th></tr>'+D.jogos.map(j=>`<tr><td>${j.id}</td><td>${j.r}</td><td>${j.casa} x ${j.fora}</td><td>${j.gc!=null?`<span class="ok">${j.gc} x ${j.gf}${j.wo?' (W.O.)':''}</span>`:'-'}</td><td>${j.data?j.data.split('-').reverse().join('/')+' '+(j.hora||''):'-'}</td></tr>`).join('')+'</table>'}
+function lista(){resolveMata(D);const nm=j=>(j.casa||'A definir')+' x '+(j.fora||'A definir'),rd=j=>j.r>7?j.fase:'Rodada '+j.r,ALL=D.jogos.concat(D.mata||[]);const op=D.jogos.map(j=>`<option value="${j.id}">Jogo ${j.id} · Rodada ${j.r} · ${j.casa} x ${j.fora}</option>`).join('');$('sj').innerHTML=ALL.map(j=>`<option value="${j.id}">Jogo ${j.id} · ${rd(j)} · ${nm(j)}</option>`).join('');$('wj').innerHTML=op;wopts();
+ $('lj').innerHTML='<table><tr><th>Jogo</th><th>Rodada</th><th>Confronto</th><th>Placar</th><th>Data</th></tr>'+ALL.map(j=>`<tr><td>${j.id}</td><td>${rd(j)}</td><td>${nm(j)}</td><td>${j.gc!=null?`<span class="ok">${j.gc} x ${j.gf}${j.wo?' (W.O.)':''}</span>`:'-'}</td><td>${j.data?j.data.split('-').reverse().join('/')+' '+(j.hora||''):'-'}</td></tr>`).join('')+'</table>'}
 async function sync(){try{merge(await remote());$('st').innerHTML='<span class="ok">Conectado ao banco de dados do site.</span>'}catch(e){$('st').innerHTML='<span class="err">Não consegui ler o banco de dados (confira a implantação do Apps Script). Mostrando só os dados do arquivo.</span>'}lista()}
 function tbl(n,l){return `<b>${n}</b><table>${l.map(x=>`<tr><td>${x.n}${x.e?' (emprestado)':''}</td><td>${x.g} G</td><td>${x.a} A${x.c?' · '+x.c+' GC':''}</td></tr>`).join('')}</table>`}
-$('an').onclick=()=>{cur=parseSumula($('tx').value,D);const p=cur;
+$('an').onclick=()=>{resolveMata(D);cur=parseSumula($('tx').value,D);const p=cur;
  let h=`<p class="${p.W.length?'warn':'ok'}">Rodada ${p.r??'?'} · ${p.casa||'?'} ${p.gc} x ${p.gf} ${p.fora||'?'}${p.par.length?' ('+p.par.join(' / ')+')':''}</p>`;
  h+=p.W.map(w=>`<p class="warn">⚠ ${w}</p>`).join('')+`<div class="two"><div>${tbl(p.casa||'Casa',p.lista.casa)}</div><div>${tbl(p.fora||'Fora',p.lista.fora)}</div></div><button id="ap">Publicar no site</button> <span id="ms1"></span>`;
  $('pv').innerHTML=h;
