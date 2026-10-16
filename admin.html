@@ -95,7 +95,7 @@ function lista(){resolveMata(D);const nm=j=>(j.casa||'A definir')+' x '+(j.fora|
 async function sync(){try{merge(await remote());$('st').innerHTML='<span class="ok">Conectado ao banco de dados do site.</span>'}catch(e){$('st').innerHTML='<span class="err">Não consegui ler o banco de dados (confira a implantação do Apps Script). Mostrando só os dados do arquivo.</span>'}lista()}
 function tbl(n,l){return `<b>${n}</b><table>${l.map(x=>`<tr><td>${x.n}${x.e?' (emprestado)':''}</td><td>${x.g} G</td><td>${x.a} A${x.c?' · '+x.c+' GC':''}</td></tr>`).join('')}</table>`}
 $('an').onclick=()=>{resolveMata(D);cur=parseSumula($('tx').value,D);const p=cur;
- let h=`<p class="${p.W.length?'warn':'ok'}">Rodada ${p.r??'?'} · ${p.casa||'?'} ${p.gc} x ${p.gf} ${p.fora||'?'}${p.par.length?' ('+p.par.join(' / ')+')':''}</p>`;
+ let h=`<p class="${p.W.length?'warn':'ok'}">${p.r>7?({8:'Quartas de final',9:'Semifinal',10:'Final'})[p.r]:'Rodada '+(p.r??'?')} · ${p.casa||'?'} ${p.gc} x ${p.gf} ${p.fora||'?'}${p.par.length?' ('+p.par.join(' / ')+')':''}</p>`;
  h+=p.W.map(w=>`<p class="warn">⚠ ${w}</p>`).join('')+`<div class="two"><div>${tbl(p.casa||'Casa',p.lista.casa)}</div><div>${tbl(p.fora||'Fora',p.lista.fora)}</div></div><button id="ap">Publicar no site</button> <span id="ms1"></span>`;
  $('pv').innerHTML=h;
  $('ap').onclick=async()=>{const b=$('ap'),m=$('ms1');if(!pw.value){m.innerHTML='<span class="err">Digite a senha.</span>';return}
