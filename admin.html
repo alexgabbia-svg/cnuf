@@ -38,6 +38,7 @@ function findPlayer(s,D){
   if(!m.length)m=k.filter(x=>norm(x).startsWith(n));
   return m.length===1?m[0]:null;
 }
+function findGuest(nome,D){const k=norm(nome);for(const j of D.jogos.concat(D.mata||[]))for(const s of ['casa','fora'])for(const x of (j.sum?j.sum[s]:[]))if(x.x&&norm(x.n)===k)return x.n;return null}
 function parseSumula(txt,D){
   const W=[],P={casa:[],fora:[]};let pen=null,casa=null,fora=null,tg=null,tf=null,r=null,sec=null;const par=[];
   const lines=txt.split(/\r?\n/).map(l=>l.replace(/\*/g,'').trim()).filter(l=>l&&!/^_+$/.test(l));
@@ -50,10 +51,12 @@ function parseSumula(txt,D){
     m=l.match(/^(.+?)\s*-\s*(.*)$/);
     if(m){
       if(!sec){W.push('Linha fora de uma seleção: '+l);continue}
-      const nome=m[1].replace(/\(.*?\)/g,'').trim(),e=/emprestad/i.test(m[1]);
-      const n=findPlayer(nome,D);if(!n){W.push('Jogador não reconhecido: '+nome);continue}
+      const nome=m[1].replace(/\(.*?\)/g,'').trim(),e=/\(\s*emp/i.test(m[1]);
+      let n=findPlayer(nome,D),gx=false;if(!n&&e){n=findGuest(nome,D)||nome.replace(/\s+/g,' ').trim();gx=true}
+      if(!n){W.push('Jogador não reconhecido: '+nome+'. Se for convidado de fora da Copa, escreva (emp) ao lado do nome.');continue}
+      if(/\d/.test(m[2].replace(/\d+\s*(GC|G(?![A-Za-z])|A\b)/gi,'')))W.push('Confira esta linha (número sem G ou A): '+l);
       const g=+((m[2].match(/(\d+)\s*G(?![A-Za-z])/i)||[])[1]||0),a=+((m[2].match(/(\d+)\s*A\b/i)||[])[1]||0),c=+((m[2].match(/(\d+)\s*GC/i)||[])[1]||0);
-      P[sec].push(c?{n,g,a,e,c}:{n,g,a,e});
+      P[sec].push(Object.assign({n,g,a,e:gx||e},c?{c}:{},gx?{x:1}:{}));
     }
   }
   const sm=(l,k)=>l.reduce((s,x)=>s+(x[k]||0),0),gc=sm(P.casa,'g')+sm(P.fora,'c'),gf=sm(P.fora,'g')+sm(P.casa,'c');
@@ -93,7 +96,7 @@ function wopts(){const j=D.jogos.find(x=>x.id==$('wj').value);$('wv').innerHTML=
 function lista(){resolveMata(D);const nm=j=>(j.casa||'A definir')+' x '+(j.fora||'A definir'),rd=j=>j.r>7?j.fase:'Rodada '+j.r,ALL=D.jogos.concat(D.mata||[]);const op=D.jogos.map(j=>`<option value="${j.id}">Jogo ${j.id} · Rodada ${j.r} · ${j.casa} x ${j.fora}</option>`).join('');$('sj').innerHTML=ALL.map(j=>`<option value="${j.id}">Jogo ${j.id} · ${rd(j)} · ${nm(j)}</option>`).join('');$('wj').innerHTML=op;wopts();
  $('lj').innerHTML='<table><tr><th>Jogo</th><th>Rodada</th><th>Confronto</th><th>Placar</th><th>Data</th></tr>'+ALL.map(j=>`<tr><td>${j.id}</td><td>${rd(j)}</td><td>${nm(j)}</td><td>${j.gc!=null?`<span class="ok">${j.gc} x ${j.gf}${j.wo?' (W.O.)':''}</span>`:'-'}</td><td>${j.data?j.data.split('-').reverse().join('/')+' '+(j.hora||''):'-'}</td></tr>`).join('')+'</table>'}
 async function sync(){try{merge(await remote());$('st').innerHTML='<span class="ok">Conectado ao banco de dados do site.</span>'}catch(e){$('st').innerHTML='<span class="err">Não consegui ler o banco de dados (confira a implantação do Apps Script). Mostrando só os dados do arquivo.</span>'}lista()}
-function tbl(n,l){return `<b>${n}</b><table>${l.map(x=>`<tr><td>${x.n}${x.e?' (emprestado)':''}</td><td>${x.g} G</td><td>${x.a} A${x.c?' · '+x.c+' GC':''}</td></tr>`).join('')}</table>`}
+function tbl(n,l){return `<b>${n}</b><table>${l.map(x=>`<tr><td>${x.n}${x.e?' (emprestado)':''}${x.x?' · convidado':''}</td><td>${x.g} G</td><td>${x.a} A${x.c?' · '+x.c+' GC':''}</td></tr>`).join('')}</table>`}
 $('an').onclick=()=>{resolveMata(D);cur=parseSumula($('tx').value,D);const p=cur;
  let h=`<p class="${p.W.length?'warn':'ok'}">${p.r>7?({8:'Quartas de final',9:'Semifinal',10:'Final'})[p.r]:'Rodada '+(p.r??'?')} · ${p.casa||'?'} ${p.gc} x ${p.gf} ${p.fora||'?'}${p.par.length?' ('+p.par.join(' / ')+')':''}</p>`;
  h+=p.W.map(w=>`<p class="warn">⚠ ${w}</p>`).join('')+`<div class="two"><div>${tbl(p.casa||'Casa',p.lista.casa)}</div><div>${tbl(p.fora||'Fora',p.lista.fora)}</div></div><button id="ap">Publicar no site</button> <span id="ms1"></span>`;
